@@ -14,9 +14,8 @@ var configuration = Argument("configuration", "Release");
 //////////////////////////////////////////////////////////////////////
 
 // Define directories.
-var buildDir = Directory("./") + Directory(configuration);
+var buildDir = Directory("./bin") + Directory(configuration);
 var currentDirectory = MakeAbsolute(Directory("./"));
-
 var version = "";
 
 //////////////////////////////////////////////////////////////////////
@@ -63,7 +62,7 @@ Task("Build")
             }
         };
 
-        DockerRun(settings, "syncromatics/build-box", "/artifacts/build.sh -t InnerBuild --verbosity Diagnostic");
+        DockerRun(settings, "syncromatics/build-box", "/artifacts/build.sh -t InnerBundle --verbosity Diagnostic");
     });
 
 Task("InnerRestore")
@@ -88,6 +87,73 @@ Task("InnerBuild")
             var exitCode = process.GetExitCode();
             if(exitCode != 0)
                 throw new Exception("Build Failed.");
+        }
+    });
+
+Task("InnerLink")
+    .IsDependentOn("InnerBuild")
+    .Does(() => 
+    {
+        var workingDirectory = buildDir + Directory("net45");
+        var assemblies = GetFiles($"{workingDirectory}/*.exe").Select(f => $"-a {f}");
+        var linkerSettings = new ProcessSettings
+        {
+            WorkingDirectory = workingDirectory,
+            Arguments = $"-c copy {string.Join(" ", assemblies)}"
+        };
+
+        Information($"Working directory is {linkerSettings.WorkingDirectory}");
+
+        using(var process = StartAndReturnProcess("monolinker", linkerSettings))
+        {
+            process.WaitForExit();
+            var exitCode = process.GetExitCode();
+            if(exitCode != 0)
+                throw new Exception("Linker Failed.");
+        }
+    });
+
+Task("InnerBundle")
+    .IsDependentOn("InnerLink")
+    .IsDependentOn("InnerFetchTarget")
+    .Does(() => 
+    {
+        var bundledFile = MakeAbsolute(buildDir + File("mqtt-demo-client"));
+        var workingDirectory = buildDir + Directory("net45/output");
+        var assemblies = GetFiles($"{workingDirectory}/*.exe")
+            .Concat(GetFiles($"{workingDirectory}/*.dll"));
+
+        var bundleSettings = new ProcessSettings
+        {
+            WorkingDirectory = workingDirectory,
+            Arguments = $"--simple --cross mono-5.0.1-debian-8-arm.zip --static -z --config /etc/mono/config -o {bundledFile} {string.Join(" ", assemblies)}"
+        };
+
+        Information($"Working directory is {bundleSettings.WorkingDirectory}");
+
+        using(var process = StartAndReturnProcess("mkbundle", bundleSettings))
+        {
+            process.WaitForExit();
+            var exitCode = process.GetExitCode();
+            if(exitCode != 0)
+                throw new Exception("Bundler Failed.");
+        }
+    });
+
+Task("InnerFetchTarget")
+    .Does(() =>
+    {
+        var bundlerSettings = new ProcessSettings
+        {
+            Arguments = $"--fetch-target mono-5.0.1-debian-8-arm.zip"
+        };
+
+        using(var process = StartAndReturnProcess("mkbundle", bundlerSettings))
+        {
+            process.WaitForExit();
+            var exitCode = process.GetExitCode();
+            if(exitCode != 0)
+                throw new Exception("Linker fetch target failed.");
         }
     });
 
