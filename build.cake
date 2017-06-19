@@ -90,7 +90,7 @@ Task("InnerLink")
     .IsDependentOn("InnerBuild")
     .Does(() => 
     {
-        var workingDirectory = buildDir + Directory("net45");
+        var workingDirectory = buildDir + Directory("net46");
         var assemblies = GetFiles($"{workingDirectory}/*.exe").Select(f => $"-a {f}");
         var linkerSettings = new ProcessSettings
         {
@@ -115,8 +115,8 @@ Task("InnerBundle")
     .Does(() => 
     {
         var bundledFile = MakeAbsolute(buildDir + File("mqtt-demo-client"));
-        var workingDirectory = buildDir + Directory("net45/output");
-        var assemblies = GetFiles($"{workingDirectory}/*.exe")
+        var workingDirectory = buildDir + Directory("net46/output");
+        var assemblies = GetFiles($"{workingDirectory}/app.exe")
             .Concat(GetFiles($"{workingDirectory}/*.dll"));
 
         var bundleSettings = new ProcessSettings
