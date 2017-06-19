@@ -56,10 +56,6 @@ Task("Build")
         {
             Volume = new string[] { $"{currentDirectory}:/artifacts"},
             Workdir = "/artifacts",
-            Env = new string[]
-            {
-                $"TEST_URL=\"{EnvironmentVariable("TEST_URL")}\""
-            }
         };
 
         DockerRun(settings, "syncromatics/build-box", "/artifacts/build.sh -t InnerBundle --verbosity Diagnostic");
