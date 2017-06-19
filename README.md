@@ -20,6 +20,8 @@ The build script relies on Docker, so make sure that's installed and working.
 
 On macOS or Linux, run `./build.sh`. It will pull a Docker image with the build environment ready to go. The ARM binary will be available at `bin/Release/mqtt-demo-client`.
 
+On Windows, run `./build.ps1 -Experimental` in Powershell.
+
 
 [jean-baptiste]: http://evain.net/blog/articles/2006/08/22/linking-all-the-way-down/
 [arm-containers]: https://resin.io/blog/building-arm-containers-on-any-x86-machine-even-dockerhub/
